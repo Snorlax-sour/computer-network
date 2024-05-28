@@ -1,0 +1,39 @@
+import socket
+
+def rdt_send(data, sock, address):
+    seq_num = 0
+    packet = str(seq_num).encode() + b'|' + data
+    sock.sendto(packet, address)
+    while True:
+        try:
+            ack, addr = sock.recvfrom(1024)
+            ack = int(ack.decode())
+            if ack == seq_num:
+                return True
+        except socket.timeout:
+            print("Timeout occurred while waiting for acknowledgment. Retransmitting...")
+            sock.sendto(packet, address)
+
+host = '172.19.224.1'
+port = 5001
+address = (host, port)
+
+socket02 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+try:
+    socket02.settimeout(1)  # Set timeout for socket operations
+    print('start send image')
+    imgFile = open("moon.png", "rb")
+    while True:
+        imgData = imgFile.read(512)
+        if not imgData:
+            break
+        if rdt_send(imgData, socket02, address):
+            print('Sent packet successfully.')
+        else:
+            print('Failed to send packet. Retrying...')
+    imgFile.close()
+    print('transmit end')
+finally:
+    socket02.close()
+    print('client close')
