@@ -39,7 +39,7 @@ def rdt_receive(sock):
             print("Connection reset by the client. Retrying...")
             continue
 
-host = '172.19.224.1'
+host = socket.gethostbyname(socket.gethostname())
 port = 5001  # Change the port number
 address = (host, port)
 
