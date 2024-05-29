@@ -14,7 +14,7 @@ def rdt_send(data, sock, address):
             print("Timeout occurred while waiting for acknowledgment. Retransmitting...")
             sock.sendto(packet, address)
 
-host = '172.19.224.1'
+host = socket.gethostbyname(socket.gethostname())
 port = 5001
 address = (host, port)
 
