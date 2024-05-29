@@ -1,6 +1,6 @@
 import socket
 
-host = 'Your ip'
+host = socket.gethostbyname(socket.gethostname())
 port = 5555
 
 address = (host, port)
