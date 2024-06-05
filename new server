@@ -1,5 +1,29 @@
 import socket
 
+def rdt_send(data, sock, address):
+    seq_num = 0
+    packet = str(seq_num).encode() + b'|' + data
+    retries = 0
+    max_retries = 5
+    sock.sendto(packet, address)
+    while retries < max_retries:
+        try:
+            ack, addr = sock.recvfrom(1024)
+            ack = int(ack.decode())
+            if ack == seq_num:
+                return True
+        except socket.timeout:
+            retries += 1
+            print(f"Timeout occurred while waiting for acknowledgment. Retransmitting... ({retries}/{max_retries})")
+            sock.sendto(packet, address)
+        except ConnectionResetError:
+            retries += 1
+            print(f"Connection reset by the client. Retransmitting... ({retries}/{max_retries})")
+            sock.sendto(packet, address)
+    print("Failed to send data after maximum retries.")
+    return False
+
+
 def rdt_receive(sock):
     expected_seq_num = 0
     while True:
@@ -10,8 +34,6 @@ def rdt_receive(sock):
             if seq_num == expected_seq_num:
                 ack_packet = str(seq_num).encode()
                 sock.sendto(ack_packet, address)
-                if packet_data == b'END':
-                    return None  # 接收结束信号
                 expected_seq_num = (expected_seq_num + 1) % 2
                 return packet_data
             else:
@@ -24,25 +46,27 @@ def rdt_receive(sock):
             print("Connection reset by the client. Retrying...")
             continue
 
+
+import socket
+
 host = '172.19.224.1'
-port = 5001  # 更改端口号
+port = 5001  # 端口号
 address = (host, port)
 
 socket01 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 try:
-    socket01.settimeout(5)  # 设置超时时间
-    print('Socket Startup')
+    socket01.settimeout(5)  # 设置超时
+    print('Socket启动')
     socket01.bind(address) 
-    print('begin write image file "moonsave.png"')
-    imgFile = open('moonsave.png', 'wb+')
-    while True:
-        imgData = rdt_receive(socket01)
-        if imgData is None:  # 处理结束信号
-            break  
-        imgFile.write(imgData)
-    imgFile.close()
-    print('image save')
+    print('开始写入图像文件 "moonsave.png"')
+    with open('moonsave.png', 'wb+') as imgFile:
+        while True:
+            imgData = rdt_receive(socket01)
+            if not imgData:
+                break  
+            imgFile.write(imgData)
+    print('图像保存完成')
 finally:
     socket01.close()
-    print('server close')
+    print('服务器关闭')
